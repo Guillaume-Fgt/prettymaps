@@ -1,57 +1,32 @@
-"""
-Prettymaps - A minimal Python library to draw pretty maps from OpenStreetMap Data
-Copyright (C) 2021 Marcelo Prates
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as published
-by the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Affero General Public License for more details.
-
-You should have received a copy of the GNU Affero General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
-
-import re
-import os
 import json
+import os
 import pathlib
 import warnings
+from copy import deepcopy
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Optional, Tuple, Union
+
+import geopandas as gp
 import matplotlib
 import numpy as np
 import osmnx as ox
-import shapely.ops
 import pandas as pd
-import geopandas as gp
 import shapely.affinity
-from copy import deepcopy
-from .fetch import get_gdfs
-from dataclasses import dataclass
+import shapely.ops
 from matplotlib import pyplot as plt
-from matplotlib.colors import hex2color
 from matplotlib.patches import Path, PathPatch
-from shapely.geometry.base import BaseGeometry
-from typing import Optional, Union, Tuple, List, Dict, Any, Iterable
 from shapely.geometry import (
-    Point,
+    GeometryCollection,
     LineString,
     MultiLineString,
-    Polygon,
     MultiPolygon,
-    GeometryCollection,
+    Point,
+    Polygon,
     box,
 )
+from shapely.geometry.base import BaseGeometry
 
-try:
-    import vsketch
-except:
-    warnings.warn(
-        'Install Vsketch with "pip install git+https://github.com/abey79/vsketch@1.0.0" to enable pen plotter mode.'
-    )
+from .fetch import get_gdfs
 
 
 class Subplot:
@@ -149,7 +124,7 @@ def transform_gdfs(
     }
     # Create geometry collection from gdfs' geometries
     collection = GeometryCollection(
-        [GeometryCollection(list(gdf.geometry)) for gdf in gdfs.values()]
+        [GeometryCollection(list(gdf.geometry)) for gdf in gdfs.values()],
     )
     # Translation, scale & rotation
     collection = shapely.affinity.translate(collection, x, y)
@@ -193,11 +168,12 @@ def PolygonPatch(shape: BaseGeometry, **kwargs) -> PathPatch:
                     + [Path.LINETO] * (p.shape[1] - 2)
                     + [Path.CLOSEPOLY],
                     [exterior] + interiors,
-                )
+                ),
             )
     # Generate PathPatch
     return PathPatch(
-        Path(np.concatenate(vertices, 1).T, np.concatenate(codes)), **kwargs
+        Path(np.concatenate(vertices, 1).T, np.concatenate(codes)),
+        **kwargs,
     )
 
 
@@ -206,8 +182,6 @@ def plot_gdf(
     gdf: gp.GeoDataFrame,
     ax: matplotlib.axes.Axes,
     mode: str = "matplotlib",
-    # vsk: Optional[vsketch.SketchClass] = None,
-    vsk=None,
     palette: Optional[List[str]] = None,
     width: Optional[Union[dict, float]] = None,
     union: bool = False,
@@ -222,8 +196,7 @@ def plot_gdf(
         layer (str): layer name
         gdf (gp.GeoDataFrame): GeoDataFrame
         ax (matplotlib.axes.Axes): matplotlib axis object
-        mode (str): drawing mode. Options: 'matplotlib', 'vsketch'. Defaults to 'matplotlib'
-        vsk (Optional[vsketch.SketchClass]): Vsketch object. Mandatory if mode == 'plotter'
+        mode (str): drawing mode. Options: 'matplotlib'. Defaults to 'matplotlib'
         palette (Optional[List[str]], optional): Color palette. Defaults to None.
         width (Optional[Union[dict, float]], optional): Street widths. Either a dictionary or a float. Defaults to None.
         union (bool, optional): Whether to join geometries. Defaults to False.
@@ -239,7 +212,11 @@ def plot_gdf(
 
     # Convert GDF to shapely geometries
     geometries = gdf_to_shapely(
-        layer, gdf, width, point_size=dilate_points, line_width=dilate_lines
+        layer,
+        gdf,
+        width,
+        point_size=dilate_points,
+        line_width=dilate_lines,
     )
 
     # Unite geometries
@@ -284,7 +261,7 @@ def plot_gdf(
                             for k, v in kwargs.items()
                             if k not in ["hatch", "fill"]
                         },
-                    )
+                    ),
                 )
             elif type(shape) == LineString:
                 ax.plot(
@@ -362,13 +339,12 @@ def graph_to_shapely(gdf: gp.GeoDataFrame, width: float = 1.0) -> BaseGeometry:
     def highway_to_width(highway):
         if (type(highway) == str) and (highway in width):
             return width[highway]
-        elif isinstance(highway, Iterable):
+        if isinstance(highway, Iterable):
             for h in highway:
                 if h in width:
                     return width[h]
             return np.nan
-        else:
-            return np.nan
+        return np.nan
 
     # Annotate GeoDataFrame with the width for each highway type
     gdf["width"] = gdf.highway.map(highway_to_width) if type(width) == dict else width
@@ -382,7 +358,8 @@ def graph_to_shapely(gdf: gp.GeoDataFrame, width: float = 1.0) -> BaseGeometry:
         if not all(gdf.width.isna()):
             # Dilate geometries based on their width
             gdf.geometry = gdf.apply(
-                lambda row: row["geometry"].buffer(row.width), axis=1
+                lambda row: row["geometry"].buffer(row.width),
+                axis=1,
             )
 
     return shapely.ops.unary_union(gdf.geometry)
@@ -461,14 +438,18 @@ def gdf_to_shapely(
         geometries = graph_to_shapely(gdf, width)
     else:
         geometries = geometries_to_shapely(
-            gdf, point_size=point_size, line_width=line_width
+            gdf,
+            point_size=point_size,
+            line_width=line_width,
         )
 
     return geometries
 
 
 def override_args(
-    layers: dict, circle: Optional[bool], dilate: Optional[Union[float, bool]]
+    layers: dict,
+    circle: Optional[bool],
+    dilate: Optional[Union[float, bool]],
 ) -> dict:
     """
     Override arguments in layers' kwargs
@@ -503,7 +484,7 @@ def override_params(default_dict: dict, new_dict: dict) -> dict:
 
     final_dict = deepcopy(default_dict)
 
-    for key in new_dict.keys():
+    for key in new_dict:
         if type(new_dict[key]) == dict:
             if key in final_dict:
                 final_dict[key] = override_params(final_dict[key], new_dict[key])
@@ -516,7 +497,8 @@ def override_params(default_dict: dict, new_dict: dict) -> dict:
 
 
 def create_background(
-    gdfs: Dict[str, gp.GeoDataFrame], style: Dict[str, dict]
+    gdfs: Dict[str, gp.GeoDataFrame],
+    style: Dict[str, dict],
 ) -> Tuple[BaseGeometry, float, float, float, float, float, float]:
     """
     Create a background layer given a collection of GeoDataFrames
@@ -536,7 +518,7 @@ def create_background(
 
     background = shapely.affinity.scale(
         box(
-            *shapely.ops.unary_union(ox.project_gdf(gdfs["perimeter"]).geometry).bounds
+            *shapely.ops.unary_union(ox.project_gdf(gdfs["perimeter"]).geometry).bounds,
         ),
         background_pad,
         background_pad,
@@ -568,7 +550,7 @@ def draw_text(params: Dict[str, dict], background: BaseGeometry) -> None:
                 [
                     "data © OpenStreetMap contributors",
                     "github.com/marceloprates/prettymaps",
-                ]
+                ],
             ),
             x=0,
             y=1,
@@ -579,7 +561,7 @@ def draw_text(params: Dict[str, dict], background: BaseGeometry) -> None:
         ),
         params,
     )
-    x, y, text = [params.pop(k) for k in ["x", "y", "text"]]
+    x, y, text = (params.pop(k) for k in ["x", "y", "text"])
 
     # Get background bounds
     xmin, ymin, xmax, ymax = background.bounds
@@ -643,7 +625,7 @@ def read_preset(name: str) -> Dict[str, dict]:
         (Dict[str,dict]): parameters dictionary
     """
     path = os.path.join(presets_directory(), f"{name}.json")
-    with open(path, "r") as f:
+    with open(path) as f:
         # Load params from JSON file
         params = json.load(f)
     return params
@@ -753,7 +735,12 @@ def manage_presets(
     # Load preset (if provided)
     if load_preset is not None:
         layers, style, circle, radius, dilate = override_preset(
-            load_preset, layers, style, circle, radius, dilate
+            load_preset,
+            layers,
+            style,
+            circle,
+            radius,
+            dilate,
         )
 
     # Save parameters as preset
@@ -778,7 +765,7 @@ def presets():
     ]
     presets = sorted(presets)
     presets = pd.DataFrame(
-        {"preset": presets, "params": list(map(read_preset, presets))}
+        {"preset": presets, "params": list(map(read_preset, presets))},
     )
 
     # print('Available presets:')
@@ -789,7 +776,7 @@ def presets():
 
 
 def preset(name):
-    with open(os.path.join(presets_directory(), f"{name}.json"), "r") as f:
+    with open(os.path.join(presets_directory(), f"{name}.json")) as f:
         # Load params from JSON file
         params = json.load(f)
         return Preset(params)
@@ -833,7 +820,6 @@ def plot(
     constrained_layout=True,
     # Credit message parameters
     credit={},
-    # Mode ('matplotlib' or 'plotter')
     mode="matplotlib",
     # Multiplot mode
     multiplot=False,
@@ -872,8 +858,6 @@ def plot(
         Matplotlib axes
     title: String
         (Optional) Title for the Matplotlib figure
-    vsketch: Vsketch
-        (Optional) Vsketch object for pen plotting
     x: float
         (Optional) Horizontal displacement
     y: float
@@ -897,13 +881,20 @@ def plot(
 
     # 1. Manage presets
     layers, style, circle, radius, dilate = manage_presets(
-        preset, save_preset, update_preset, layers, style, circle, radius, dilate
+        preset,
+        save_preset,
+        update_preset,
+        layers,
+        style,
+        circle,
+        radius,
+        dilate,
     )
 
     # 2. Init matplotlib figure and ax
-    if (mode == "matplotlib") and (fig is None):
+    if fig is None:
         fig = plt.figure(figsize=figsize, dpi=300)
-    if (mode == "matplotlib") and (ax is None):
+    if ax is None:
         ax = plt.subplot(111, aspect="equal")
 
     # 3. Override arguments in layers' kwargs dict
@@ -926,59 +917,23 @@ def plot(
     background, xmin, ymin, xmax, ymax, dx, dy = create_background(gdfs, style)
 
     # 8. Draw layers
-    if mode == "plotter":
-        # 8.1. Draw layers in plotter (vsketch) mode
-        #'''
-        class Sketch(vsketch.SketchClass):
-            def draw(self, vsk: vsketch.Vsketch):
+    for layer in gdfs:
+        if (layer in layers) or (layer in style):
+            plot_gdf(
+                layer,
+                gdfs[layer],
+                ax,
+                width=(
+                    layers[layer]["width"]
+                    if (layer in layers) and ("width" in layers[layer])
+                    else None
+                ),
+                **(style[layer] if layer in style else {}),
+            )
 
-                vsk.size("a4", landscape=True)
-
-                for layer in gdfs:
-                    if layer in layers:
-                        plot_gdf(
-                            layer,
-                            gdfs[layer],
-                            ax,
-                            width=(
-                                layers[layer]["width"]
-                                if "width" in layers[layer]
-                                else None
-                            ),
-                            mode=mode,
-                            vsk=vsk,
-                            **(style[layer] if layer in style else {}),
-                        )
-
-                if save_as:
-                    vsk.save(save_as)
-
-            def finalize(self, vsk: vsketch.Vsketch):
-                vsk.vpype("linemerge linesimplify reloop linesort")
-
-        sketch = Sketch()
-        sketch.display()
-        #'''
-    elif mode == "matplotlib":
-        # 8.2. Draw layers in matplotlib mode
-        for layer in gdfs:
-            if (layer in layers) or (layer in style):
-                plot_gdf(
-                    layer,
-                    gdfs[layer],
-                    ax,
-                    width=(
-                        layers[layer]["width"]
-                        if (layer in layers) and ("width" in layers[layer])
-                        else None
-                    ),
-                    **(style[layer] if layer in style else {}),
-                )
-    else:
-        raise Exception(f"Unknown mode {mode}")
 
     # 9. Draw background
-    if (mode == "matplotlib") and ("background" in style):
+    if "background" in style:
         zorder = (
             style["background"].pop("zorder") if "zorder" in style["background"] else -1
         )
@@ -987,26 +942,26 @@ def plot(
                 background,
                 **{k: v for k, v in style["background"].items() if k != "dilate"},
                 zorder=zorder,
-            )
+            ),
         )
 
     # 10. Draw credit message
-    if (mode == "matplotlib") and (credit != False) and (not multiplot):
+    if (credit != False) and (not multiplot):
         draw_text(credit, background)
 
     # 11. Ajust figure and create PIL Image
-    if mode == "matplotlib":
-        # Adjust axis
-        ax.axis("off")
-        ax.axis("equal")
-        ax.autoscale()
-        # Adjust padding
-        plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        # Save result
-        if save_as:
-            plt.savefig(save_as)
-        if not show:
-            plt.close()
+
+    # Adjust axis
+    ax.axis("off")
+    ax.axis("equal")
+    ax.autoscale()
+    # Adjust padding
+    plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    # Save result
+    if save_as:
+        plt.savefig(save_as)
+    if not show:
+        plt.close()
 
     # Generate plot
     plot = Plot(gdfs, fig, ax, background)
@@ -1019,7 +974,7 @@ def multiplot(*subplots, figsize=None, credit={}, **kwargs):
     fig = plt.figure(figsize=figsize)
     ax = plt.subplot(111, aspect="equal")
 
-    mode = "plotter" if "plotter" in kwargs and kwargs["plotter"] else "matplotlib"
+    mode = "plotter" if kwargs.get("plotter") else "matplotlib"
 
     subplots_results = [
         plot(
