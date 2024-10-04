@@ -422,42 +422,7 @@ def create_background(
     return background
 
 
-def draw_text(params: dict[str, dict], background: BaseGeometry) -> None:
-    """
-    Draw text with content and matplotlib style parameters specified by 'params' dictionary.
-    params['text'] should contain the message to be drawn
 
-    Args:
-        params (Dict[str, dict]): matplotlib style parameters for drawing text. params['text'] should contain the message to be drawn.
-        background (BaseGeometry): Background layer
-    """
-    # Override default osm_credit dict with provided parameters
-    params = override_params(
-        dict(
-            text="\n".join(
-                [
-                    "data © OpenStreetMap contributors",
-                    "github.com/marceloprates/prettymaps",
-                ],
-            ),
-            x=0,
-            y=1,
-            horizontalalignment="left",
-            verticalalignment="top",
-            bbox=dict(boxstyle="square", fc="#fff", ec="#000"),
-            fontfamily="Ubuntu Mono",
-        ),
-        params,
-    )
-    x, y, text = (params.pop(k) for k in ["x", "y", "text"])
-
-    # Get background bounds
-    xmin, ymin, xmax, ymax = background.bounds
-
-    x = np.interp([x], [0, 1], [xmin, xmax])[0]
-    y = np.interp([y], [0, 1], [ymin, ymax])[0]
-
-    plt.text(x, y, text, **params)
 
 
 
@@ -495,14 +460,9 @@ def plot(
     # Figure parameters
     fig=None,
     ax=None,
-    title=None,
+
     figsize=(12, 12),
-    constrained_layout=True,
-    # Credit message parameters
-    credit={},
-    mode="matplotlib",
-    # Multiplot mode
-    multiplot=False,
+
     # Whether to display matplotlib
     show=True,
     # Transform (translation, scale, rotation) parameters
@@ -625,9 +585,7 @@ def plot(
             ),
         )
 
-    # 10. Draw credit message
-    if (credit != False) and (not multiplot):
-        draw_text(credit, background)
+
 
     # 11. Ajust figure and create PIL Image
 
@@ -677,13 +635,3 @@ def multiplot(*subplots, figsize=None, credit={}, **kwargs) -> None:
         ax.axis("off")
         ax.axis("equal")
         ax.autoscale()
-        # plt.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        # if "show" in kwargs and not kwargs["show"]:
-        #    plt.close()
-
-
-#
-# if credit != False:
-#    backgrounds = [result.background for result in subplots_results]
-#    global_background = box(*shapely.ops.unary_union(backgrounds).bounds)
-#    draw_text(credit, global_background)
