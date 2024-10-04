@@ -26,18 +26,6 @@ from .fetch import get_gdfs
 from .presets import manage_presets
 
 
-class Subplot:
-    """
-    Class implementing a prettymaps Subplot. Attributes:
-    - query: prettymaps.plot() query
-    - kwargs: dictionary of prettymaps.plot() parameters
-    """
-
-    def __init__(self, query, **kwargs):
-        self.query = query
-        self.kwargs = kwargs
-
-
 @dataclass
 class Plot:
     """
@@ -140,9 +128,8 @@ def plot_gdf(
     layer: str,
     gdf: gp.GeoDataFrame,
     ax: matplotlib.axes.Axes,
-    mode: str = "matplotlib",
     palette: Optional[list[str]] = None,
-    width: Optional[dict | float] = None,
+    width: Optional[dict[str, float] | float] = None,
     union: bool = False,
     dilate_points: Optional[float] = None,
     dilate_lines: Optional[float] = None,
@@ -404,7 +391,7 @@ def override_args(
 def create_background(
     gdfs: dict[str, gp.GeoDataFrame],
     style: dict[str, dict],
-) -> tuple[BaseGeometry, float, float, float, float, float, float]:
+) -> BaseGeometry:
     """
     Create a background layer given a collection of GeoDataFrames
 
@@ -413,7 +400,7 @@ def create_background(
         style (Dict[str, dict]): Dictionary of matplotlib style parameters
 
     Returns:
-        Tuple[BaseGeometry, float, float, float, float, float, float]: background geometry, bounds, width and height
+        Tuple[BaseGeometry]: background geometry, bounds, width and height
     """
 
     # Create background
@@ -432,11 +419,7 @@ def create_background(
     if "background" in style and "dilate" in style["background"]:
         background = background.buffer(style["background"].pop("dilate"))
 
-    # Get bounds
-    xmin, ymin, xmax, ymax = background.bounds
-    dx, dy = xmax - xmin, ymax - ymin
-
-    return background, xmin, ymin, xmax, ymax, dx, dy
+    return background
 
 
 def draw_text(params: dict[str, dict], background: BaseGeometry) -> None:
@@ -611,7 +594,7 @@ def plot(
         gdfs = postprocessing(gdfs)
 
     # 7. Create background GeoDataFrame and get (x,y) bounds
-    background, xmin, ymin, xmax, ymax, dx, dy = create_background(gdfs, style)
+    background = create_background(gdfs, style)
 
     # 8. Draw layers
     for layer in gdfs:
@@ -666,7 +649,7 @@ def plot(
     return plot
 
 
-def multiplot(*subplots, figsize=None, credit={}, **kwargs):
+def multiplot(*subplots, figsize=None, credit={}, **kwargs) -> None:
 
     fig = plt.figure(figsize=figsize)
     ax = plt.subplot(111, aspect="equal")
