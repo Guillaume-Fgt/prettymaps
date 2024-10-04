@@ -23,7 +23,6 @@ from shapely.geometry import (
 from shapely.geometry.base import BaseGeometry
 
 from .fetch import get_gdfs
-from .presets import manage_presets
 
 
 @dataclass
@@ -434,19 +433,9 @@ def plot(
     # - (-30.0324999, -51.2303767) (lat/long coordinates)
     # - You can also provide a custom GeoDataFrame boundary as input
     query: str | tuple[float, float] | gp.GeoDataFrame,
-    backup=None,
-    # Which OpenStreetMap layers to plot
-    # Example: {'building': {'tags': {'building': True}}, 'streets': {'width': 2}}
-    # Run prettymaps.presets() for more examples
     layers={},
     # Matplotlib params for drawing each layer
     style={},
-    # Whether to load params from preset
-    preset="default",
-    # Whether to save preset
-    save_preset=None,
-    # Whether to load and update preset with additional parameters
-    update_preset=None,
     # Custom postprocessing function on layers
     postprocessing=None,
     # Circular boundary? Default: square
@@ -460,9 +449,7 @@ def plot(
     # Figure parameters
     fig=None,
     ax=None,
-
     figsize=(12, 12),
-
     # Whether to display matplotlib
     show=True,
     # Transform (translation, scale, rotation) parameters
@@ -480,8 +467,6 @@ def plot(
     ----------
     query : string
         The address to geocode and use as the central point around which to get the geometries
-    backup : dict
-        (Optional) feed the output from a previous 'plot()' run to save time
     postprocessing: function
         (Optional) Apply a postprocessing step to the 'layers' dict
     radius
@@ -519,18 +504,6 @@ def plot(
 
     """
 
-    # 1. Manage presets
-    layers, style, circle, radius, dilate = manage_presets(
-        preset,
-        save_preset,
-        update_preset,
-        layers,
-        style,
-        circle,
-        radius,
-        dilate,
-    )
-
     # 2. Init matplotlib figure and ax
     if fig is None:
         fig = plt.figure(figsize=figsize, dpi=300)
@@ -540,14 +513,11 @@ def plot(
     # 3. Override arguments in layers' kwargs dict
     layers = override_args(layers, circle, dilate)
 
-    if backup:
-        gdfs = backup.geodataframes
-    else:
-        # 4. Fetch geodataframes
-        gdfs = get_gdfs(query, layers, radius, dilate, -rotation)
+    # 4. Fetch geodataframes
+    gdfs = get_gdfs(query, layers, radius, dilate, -rotation)
 
-        # 5. Apply transformations to GeoDataFrames (translation, scale, rotation)
-        gdfs = transform_gdfs(gdfs, x, y, scale_x, scale_y, rotation)
+    # 5. Apply transformations to GeoDataFrames (translation, scale, rotation)
+    gdfs = transform_gdfs(gdfs, x, y, scale_x, scale_y, rotation)
 
     # 6. Apply a postprocessing function to the GeoDataFrames, if provided
     if postprocessing:
