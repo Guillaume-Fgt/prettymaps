@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Iterable, Optional
 
 import geopandas as gp
 import matplotlib.axes
@@ -56,13 +56,13 @@ class Plot:
 
 
 def transform_gdfs(
-    gdfs: Dict[str, gp.GeoDataFrame],
+    gdfs: dict[str, gp.GeoDataFrame],
     x: float = 0,
     y: float = 0,
     scale_x: float = 1,
     scale_y: float = 1,
     rotation: float = 0,
-) -> Dict[str, gp.GeoDataFrame]:
+) -> dict[str, gp.GeoDataFrame]:
     """
     Apply geometric transformations to dictionary of GeoDataFrames
 
@@ -141,8 +141,8 @@ def plot_gdf(
     gdf: gp.GeoDataFrame,
     ax: matplotlib.axes.Axes,
     mode: str = "matplotlib",
-    palette: Optional[List[str]] = None,
-    width: Optional[Union[dict, float]] = None,
+    palette: Optional[list[str]] = None,
+    width: Optional[dict | float] = None,
     union: bool = False,
     dilate_points: Optional[float] = None,
     dilate_lines: Optional[float] = None,
@@ -186,86 +186,55 @@ def plot_gdf(
         palette = kwargs.pop("fc")
 
     for shape in geometries.geoms if hasattr(geometries, "geoms") else [geometries]:
-        if mode == "matplotlib":
-            if type(shape) in [Polygon, MultiPolygon]:
-                # Plot main shape (without silhouette)
-                ax.add_patch(
-                    PolygonPatch(
-                        shape,
-                        lw=0,
-                        ec=(
-                            hatch_c
-                            if hatch_c
-                            else kwargs["ec"] if "ec" in kwargs else None
-                        ),
-                        fc=(
-                            kwargs["fc"]
-                            if "fc" in kwargs
-                            else np.random.choice(palette) if palette else None
-                        ),
-                        **{
-                            k: v
-                            for k, v in kwargs.items()
-                            if k not in ["lw", "ec", "fc"]
-                        },
+        if type(shape) in [Polygon, MultiPolygon]:
+            # Plot main shape (without silhouette)
+            ax.add_patch(
+                PolygonPatch(
+                    shape,
+                    lw=0,
+                    ec=(
+                        hatch_c if hatch_c else kwargs["ec"] if "ec" in kwargs else None
                     ),
-                )
-                # Plot just silhouette
-                ax.add_patch(
-                    PolygonPatch(
-                        shape,
-                        fill=False,
-                        **{
-                            k: v
-                            for k, v in kwargs.items()
-                            if k not in ["hatch", "fill"]
-                        },
+                    fc=(
+                        kwargs["fc"]
+                        if "fc" in kwargs
+                        else np.random.choice(palette)
+                        if palette
+                        else None
                     ),
-                )
-            elif type(shape) == LineString:
+                    **{k: v for k, v in kwargs.items() if k not in ["lw", "ec", "fc"]},
+                ),
+            )
+            # Plot just silhouette
+            ax.add_patch(
+                PolygonPatch(
+                    shape,
+                    fill=False,
+                    **{k: v for k, v in kwargs.items() if k not in ["hatch", "fill"]},
+                ),
+            )
+        elif type(shape) == LineString:
+            ax.plot(
+                *shape.xy,
+                c=kwargs["ec"] if "ec" in kwargs else None,
+                **{
+                    k: v
+                    for k, v in kwargs.items()
+                    if k in ["lw", "ls", "dashes", "zorder"]
+                },
+            )
+        elif type(shape) == MultiLineString:
+            for c in shape.geoms:
                 ax.plot(
-                    *shape.xy,
+                    *c.xy,
                     c=kwargs["ec"] if "ec" in kwargs else None,
                     **{
                         k: v
                         for k, v in kwargs.items()
-                        if k in ["lw", "ls", "dashes", "zorder"]
+                        if k in ["lw", "lt", "dashes", "zorder"]
                     },
                 )
-            elif type(shape) == MultiLineString:
-                for c in shape.geoms:
-                    ax.plot(
-                        *c.xy,
-                        c=kwargs["ec"] if "ec" in kwargs else None,
-                        **{
-                            k: v
-                            for k, v in kwargs.items()
-                            if k in ["lw", "lt", "dashes", "zorder"]
-                        },
-                    )
-        elif mode == "plotter":
-            if ("draw" not in kwargs) or kwargs["draw"]:
 
-                # Set stroke
-                if "stroke" in kwargs:
-                    vsk.stroke(kwargs["stroke"])
-                else:
-                    vsk.stroke(1)
-
-                # Set pen width
-                if "penWidth" in kwargs:
-                    vsk.penWidth(kwargs["penWidth"])
-                else:
-                    vsk.penWidth(0.3)
-
-                if "fill" in kwargs:
-                    vsk.fill(kwargs["fill"])
-                else:
-                    vsk.noFill()
-
-                vsk.geometry(shape)
-        else:
-            raise Exception(f"Unknown mode {mode}")
 
 
 ##########
@@ -368,7 +337,7 @@ def geometries_to_shapely(
 def gdf_to_shapely(
     layer: str,
     gdf: gp.GeoDataFrame,
-    width: Optional[Union[dict, float]] = None,
+    width: Optional[dict | float] = None,
     point_size: Optional[float] = None,
     line_width: Optional[float] = None,
     **kwargs,
@@ -408,7 +377,7 @@ def gdf_to_shapely(
 def override_args(
     layers: dict,
     circle: Optional[bool],
-    dilate: Optional[Union[float, bool]],
+    dilate: Optional[float | bool],
 ) -> dict:
     """
     Override arguments in layers' kwargs
@@ -433,9 +402,9 @@ def override_args(
 
 
 def create_background(
-    gdfs: Dict[str, gp.GeoDataFrame],
-    style: Dict[str, dict],
-) -> Tuple[BaseGeometry, float, float, float, float, float, float]:
+    gdfs: dict[str, gp.GeoDataFrame],
+    style: dict[str, dict],
+) -> tuple[BaseGeometry, float, float, float, float, float, float]:
     """
     Create a background layer given a collection of GeoDataFrames
 
@@ -470,7 +439,7 @@ def create_background(
     return background, xmin, ymin, xmax, ymax, dx, dy
 
 
-def draw_text(params: Dict[str, dict], background: BaseGeometry) -> None:
+def draw_text(params: dict[str, dict], background: BaseGeometry) -> None:
     """
     Draw text with content and matplotlib style parameters specified by 'params' dictionary.
     params['text'] should contain the message to be drawn
@@ -516,7 +485,7 @@ def plot(
     # - "Porto Alegre"
     # - (-30.0324999, -51.2303767) (lat/long coordinates)
     # - You can also provide a custom GeoDataFrame boundary as input
-    query: Union[str, Tuple[float, float], gp.GeoDataFrame],
+    query: str | tuple[float, float] | gp.GeoDataFrame,
     backup=None,
     # Which OpenStreetMap layers to plot
     # Example: {'building': {'tags': {'building': True}}, 'streets': {'width': 2}}
