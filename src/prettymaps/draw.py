@@ -3,7 +3,8 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Tuple, Union
 
 import geopandas as gp
-import matplotlib
+import matplotlib.axes
+import matplotlib.figure
 import numpy as np
 import osmnx as ox
 import shapely.affinity
@@ -47,7 +48,7 @@ class Plot:
     - background: Background layer (shapely object)
     """
 
-    geodataframes: Dict[str, gp.GeoDataFrame]
+    geodataframes: dict[str, gp.GeoDataFrame]
     fig: matplotlib.figure.Figure
     ax: matplotlib.axes.Axes
     background: BaseGeometry
