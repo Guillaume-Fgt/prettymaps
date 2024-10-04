@@ -1,0 +1,13 @@
+[build-system]
+requires = ["flit_core >= 3.4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name="prettymaps"
+version="1.0.0"
+description="create pretty maps from OSM data"
+dependencies = [
+  "osmnx==1.9.4",
+  "shapely==2.0.6",
+  "matplotlib==3.9.2",
+]

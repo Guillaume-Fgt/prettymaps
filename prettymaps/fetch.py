@@ -17,36 +17,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
-import warnings
+from copy import deepcopy
+
 import numpy as np
 import osmnx as ox
-from copy import deepcopy
-from shapely.geometry import (
-    box,
-    Point,
-    Polygon,
-    MultiPolygon,
-    LineString,
-    MultiLineString,
-)
 from geopandas import GeoDataFrame
 from shapely.affinity import rotate, scale
+from shapely.geometry import (
+    Point,
+    Polygon,
+    box,
+)
 from shapely.ops import unary_union
-from shapely.errors import ShapelyDeprecationWarning
-
-from IPython.display import display
 
 
 # Parse query (by coordinates, OSMId or name)
 def parse_query(query):
     if isinstance(query, GeoDataFrame):
         return "polygon"
-    elif isinstance(query, tuple):
+    if isinstance(query, tuple):
         return "coordinates"
-    elif re.match("""[A-Z][0-9]+""", query):
+    if re.match("""[A-Z][0-9]+""", query):
         return "osmid"
-    else:
-        return "address"
+    return "address"
 
 
 # Get circular or square boundary around point
@@ -56,7 +49,7 @@ def get_boundary(query, radius, circle=False, rotation=0):
     point = query if parse_query(query) == "coordinates" else ox.geocode(query)
     # Create GeoDataFrame from point
     boundary = ox.project_gdf(
-        GeoDataFrame(geometry=[Point(point[::-1])], crs="EPSG:4326")
+        GeoDataFrame(geometry=[Point(point[::-1])], crs="EPSG:4326"),
     )
 
     if circle:  # Circular shape
@@ -69,10 +62,15 @@ def get_boundary(query, radius, circle=False, rotation=0):
             geometry=[
                 rotate(
                     Polygon(
-                        [(x - r, y - r), (x + r, y - r), (x + r, y + r), (x - r, y + r)]
+                        [
+                            (x - r, y - r),
+                            (x + r, y - r),
+                            (x + r, y + r),
+                            (x - r, y + r),
+                        ],
                     ),
                     rotation,
-                )
+                ),
             ],
             crs=boundary.crs,
         )
@@ -92,24 +90,22 @@ def get_perimeter(
     dilate=None,
     rotation=0,
     aspect_ratio=1,
-    **kwargs
+    **kwargs,
 ):
 
     if radius:
         # Perimeter is a circular or square shape
         perimeter = get_boundary(query, radius, circle=circle, rotation=rotation)
+    elif parse_query(query) == "polygon":
+        # Perimeter was already provided
+        perimeter = query
     else:
-        # Perimeter is a OSM or user-provided polygon
-        if parse_query(query) == "polygon":
-            # Perimeter was already provided
-            perimeter = query
-        else:
-            # Fetch perimeter from OSM
-            perimeter = ox.geocode_to_gdf(
-                query,
-                by_osmid=by_osmid,
-                **kwargs,
-            )
+        # Fetch perimeter from OSM
+        perimeter = ox.geocode_to_gdf(
+            query,
+            by_osmid=by_osmid,
+            **kwargs,
+        )
 
     # Scale according to aspect ratio
     perimeter = ox.project_gdf(perimeter)
@@ -141,7 +137,7 @@ def get_gdf(
     min_height=30,
     max_height=None,
     n_curves=100,
-    **kwargs
+    **kwargs,
 ):
 
     # Apply tolerance to the perimeter
@@ -161,19 +157,14 @@ def get_gdf(
                 truncate_by_edge=True,
             )
             gdf = ox.graph_to_gdfs(graph, nodes=False)
-        elif layer == "coastline":
+        elif layer == "coastline" or osmid is None:
             # Fetch geometries from OSM
             gdf = ox.features_from_polygon(
-                bbox, tags={tags: True} if type(tags) == str else tags
+                bbox,
+                tags={tags: True} if type(tags) == str else tags,
             )
         else:
-            if osmid is None:
-                # Fetch geometries from OSM
-                gdf = ox.features_from_polygon(
-                    bbox, tags={tags: True} if type(tags) == str else tags
-                )
-            else:
-                gdf = ox.geocode_to_gdf(osmid, by_osmid=True)
+            gdf = ox.geocode_to_gdf(osmid, by_osmid=True)
     except:
         gdf = GeoDataFrame(geometry=[])
 
@@ -209,7 +200,7 @@ def get_gdfs(query, layers_dict, radius, dilate, rotation=0) -> dict:
             layer: get_gdf(layer, perimeter, **kwargs)
             for layer, kwargs in layers_dict.items()
             if layer != "perimeter"
-        }
+        },
     )
 
     return gdfs
