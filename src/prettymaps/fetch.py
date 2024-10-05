@@ -26,6 +26,7 @@ def parse_query(query):
     return "address"
 
 
+
 # Get circular or square boundary around point
 def get_boundary(query, radius, circle=False, rotation=0):
 
@@ -92,7 +93,7 @@ def get_perimeter(
         )
 
     # Scale according to aspect ratio
-    perimeter = ox.project_gdf(perimeter)
+    perimeter = ox.projection.project_gdf(perimeter)
     perimeter.loc[0, "geometry"] = scale(perimeter.loc[0, "geometry"], aspect_ratio, 1)
     perimeter = perimeter.to_crs(4326)
 

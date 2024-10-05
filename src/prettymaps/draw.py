@@ -27,14 +27,6 @@ from .fetch import get_gdfs
 
 @dataclass
 class Plot:
-    """
-    Dataclass implementing a prettymaps Plot object. Attributes:
-    - geodataframes: A dictionary of GeoDataFrames (one for each plot layer)
-    - fig: A matplotlib figure
-    - ax: A matplotlib axis object
-    - background: Background layer (shapely object)
-    """
-
     geodataframes: dict[str, gp.GeoDataFrame]
     fig: matplotlib.figure.Figure
     ax: matplotlib.axes.Axes
@@ -422,37 +414,20 @@ def create_background(
 
 
 
-
-
-
-
 # Plot
 def plot(
-    # Your query. Example:
-    # - "Porto Alegre"
-    # - (-30.0324999, -51.2303767) (lat/long coordinates)
-    # - You can also provide a custom GeoDataFrame boundary as input
     query: str | tuple[float, float] | gp.GeoDataFrame,
     layers={},
-    # Matplotlib params for drawing each layer
     style={},
-    # Custom postprocessing function on layers
     postprocessing=None,
-    # Circular boundary? Default: square
     circle=None,
-    # Radius for circular or square boundary
     radius=None,
-    # Dilate boundary by this much
     dilate=None,
-    # Whether to save result
     save_as=None,
-    # Figure parameters
     fig=None,
     ax=None,
     figsize=(12, 12),
-    # Whether to display matplotlib
     show=True,
-    # Transform (translation, scale, rotation) parameters
     x=0,
     y=0,
     scale_x=1,
@@ -582,7 +557,7 @@ def multiplot(*subplots, figsize=None, credit={}, **kwargs) -> None:
     fig = plt.figure(figsize=figsize)
     ax = plt.subplot(111, aspect="equal")
 
-    mode = "plotter" if kwargs.get("plotter") else "matplotlib"
+
 
     subplots_results = [
         plot(
@@ -601,7 +576,6 @@ def multiplot(*subplots, figsize=None, credit={}, **kwargs) -> None:
         for subplot in subplots
     ]
 
-    if mode == "matplotlib":
-        ax.axis("off")
-        ax.axis("equal")
-        ax.autoscale()
+    ax.axis("off")
+    ax.axis("equal")
+    ax.autoscale()

@@ -9,7 +9,7 @@ description="create pretty maps from OSM data"
 
 requires-python = ">= 3.11"
 dependencies = [
-  "osmnx==1.9.4",
+  "osmnx==2.0.0b3",
   "shapely==2.0.6",
   "matplotlib==3.9.2",
 ]
