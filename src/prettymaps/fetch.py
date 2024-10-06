@@ -33,7 +33,7 @@ def get_boundary(query, radius, circle=False, rotation=0):
     # Get point from query
     point = query if parse_query(query) == "coordinates" else ox.geocode(query)
     # Create GeoDataFrame from point
-    boundary = ox.project_gdf(
+    boundary = ox.projection.project_gdf(
         GeoDataFrame(geometry=[Point(point[::-1])], crs="EPSG:4326"),
     )
 
@@ -86,7 +86,7 @@ def get_perimeter(
         perimeter = query
     else:
         # Fetch perimeter from OSM
-        perimeter = ox.geocode_to_gdf(
+        perimeter = ox.geocoder.geocode_to_gdf(
             query,
             by_osmid=by_osmid,
             **kwargs,
@@ -98,7 +98,7 @@ def get_perimeter(
     perimeter = perimeter.to_crs(4326)
 
     # Apply dilation
-    perimeter = ox.project_gdf(perimeter)
+    perimeter = ox.projection.project_gdf(perimeter)
     if dilate is not None:
         perimeter.geometry = perimeter.geometry.buffer(dilate)
     perimeter = perimeter.to_crs(4326)
@@ -114,20 +114,11 @@ def get_gdf(
     tags=None,
     osmid=None,
     custom_filter=None,
-    union=False,
-    vert_exag=1,
-    azdeg=90,
-    altdeg=80,
-    pad=1,
-    min_height=30,
-    max_height=None,
-    n_curves=100,
-    **kwargs,
 ):
 
     # Apply tolerance to the perimeter
     perimeter_with_tolerance = (
-        ox.project_gdf(perimeter).buffer(perimeter_tolerance).to_crs(4326)
+        ox.projection.project_gdf(perimeter).buffer(perimeter_tolerance).to_crs(4326)
     )
     perimeter_with_tolerance = unary_union(perimeter_with_tolerance.geometry).buffer(0)
 
@@ -136,20 +127,20 @@ def get_gdf(
 
     try:
         if layer in ["streets", "railway", "waterway"]:
-            graph = ox.graph_from_polygon(
+            graph = ox.graph.graph_from_polygon(
                 bbox,
                 custom_filter=custom_filter,
                 truncate_by_edge=True,
             )
-            gdf = ox.graph_to_gdfs(graph, nodes=False)
+            gdf = ox.convert.graph_to_gdfs(graph, nodes=False)
         elif layer == "coastline" or osmid is None:
             # Fetch geometries from OSM
-            gdf = ox.features_from_polygon(
+            gdf = ox.features.features_from_polygon(
                 bbox,
                 tags={tags: True} if type(tags) == str else tags,
             )
         else:
-            gdf = ox.geocode_to_gdf(osmid, by_osmid=True)
+            gdf = ox.geocoder.geocode_to_gdf(osmid, by_osmid=True)
     except:
         gdf = GeoDataFrame(geometry=[])
 

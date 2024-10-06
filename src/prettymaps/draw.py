@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 import geopandas as gp
 import matplotlib.axes
@@ -58,7 +58,8 @@ def transform_gdfs(
     """
     # Project geometries
     gdfs = {
-        name: ox.project_gdf(gdf) if len(gdf) > 0 else gdf for name, gdf in gdfs.items()
+        name: ox.projection.project_gdf(gdf) if len(gdf) > 0 else gdf
+        for name, gdf in gdfs.items()
     }
     # Create geometry collection from gdfs' geometries
     collection = GeometryCollection(
@@ -73,7 +74,7 @@ def transform_gdfs(
         gdfs[layer].geometry = list(collection.geoms[i].geoms)
         # Reproject
         if len(gdfs[layer]) > 0:
-            gdfs[layer] = ox.project_gdf(gdfs[layer], to_crs="EPSG:4326")
+            gdfs[layer] = ox.projection.project_gdf(gdfs[layer], to_crs="EPSG:4326")
 
     return gdfs
 
@@ -336,7 +337,7 @@ def gdf_to_shapely(
 
     # Project gdf
     try:
-        gdf = ox.project_gdf(gdf)
+        gdf = ox.projection.project_gdf(gdf)
     except:
         pass
 
@@ -353,21 +354,10 @@ def gdf_to_shapely(
 
 
 def override_args(
-    layers: dict,
-    circle: Optional[bool],
-    dilate: Optional[float | bool],
-) -> dict:
-    """
-    Override arguments in layers' kwargs
-
-    Args:
-        layers (dict): prettymaps.plot() Layers parameters dict
-        circle (Optional[bool]): prettymaps.plot() 'Circle' parameter
-        dilate (Optional[Union[float, bool]]): prettymaps.plot() 'dilate' parameter
-
-    Returns:
-        dict: output dict
-    """
+    layers: dict[str, Any],
+    circle: Optional[bool] = None,
+    dilate: Optional[float | bool] = None,
+) -> dict[str, Any]:
     override_args = ["circle", "dilate"]
     for layer in layers:
         for arg in override_args:
@@ -401,7 +391,9 @@ def create_background(
 
     background = shapely.affinity.scale(
         box(
-            *shapely.ops.unary_union(ox.project_gdf(gdfs["perimeter"]).geometry).bounds,
+            *shapely.ops.unary_union(
+                ox.projection.project_gdf(gdfs["perimeter"]).geometry,
+            ).bounds,
         ),
         background_pad,
         background_pad,
