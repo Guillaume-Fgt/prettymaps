@@ -354,15 +354,13 @@ def gdf_to_shapely(
 
 
 def override_args(
-    layers: dict[str, Any],
-    circle: Optional[bool] = None,
-    dilate: Optional[float | bool] = None,
-) -> dict[str, Any]:
-    override_args = ["circle", "dilate"]
+    layers: dict[str, dict[str, Any]],
+    circle: bool,  # noqa: FBT001
+    dilate: float | bool,
+) -> dict[str, dict[str, Any]]:
     for layer in layers:
-        for arg in override_args:
-            if arg not in layers[layer]:
-                layers[layer][arg] = locals()[arg]
+        layers[layer].setdefault("circle", circle)
+        layers[layer].setdefault("dilate", dilate)
     return layers
 
 
