@@ -147,7 +147,7 @@ def plot_gdf(
     if union:
         geometries = shapely.ops.unary_union(GeometryCollection([geometries]))
 
-    if (palette is None) and ("fc" in kwargs) and (type(kwargs["fc"]) != str):
+    if (palette is None) and ("fc" in kwargs) and (type(kwargs["fc"]) is not str):
         palette = kwargs.pop("fc")
 
     for shape in geometries.geoms if hasattr(geometries, "geoms") else [geometries]:
@@ -357,7 +357,6 @@ def create_background(
         background = background.buffer(style["background"].pop("dilate"))
 
     return background
-
 
 
 # Plot

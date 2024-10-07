@@ -98,10 +98,10 @@ def get_perimeter(
     perimeter = perimeter.to_crs(4326)
 
     # Apply dilation
-    perimeter = ox.projection.project_gdf(perimeter)
     if dilate is not None:
+        perimeter = ox.projection.project_gdf(perimeter)
         perimeter.geometry = perimeter.geometry.buffer(dilate)
-    perimeter = perimeter.to_crs(4326)
+        perimeter = perimeter.to_crs(4326)
 
     return perimeter
 
@@ -159,7 +159,7 @@ def get_gdfs(query, layers_dict, radius, dilate, rotation=0) -> dict:
     perimeter_kwargs = {}
     if "perimeter" in layers_dict:
         perimeter_kwargs = deepcopy(layers_dict["perimeter"])
-        perimeter_kwargs.pop("dilate")
+        perimeter_kwargs.pop("dilate")  # remove dilate from perimeter dict
 
     # Get perimeter
     perimeter = get_perimeter(
