@@ -1,6 +1,6 @@
 import warnings
 from dataclasses import dataclass
-from typing import Any, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import geopandas as gp
 import matplotlib.axes
@@ -93,7 +93,7 @@ def PolygonPatch(shape: BaseGeometry, **kwargs) -> PathPatch:
     vertices, codes = [], []
     for geom in shape.geoms if hasattr(shape, "geoms") else [shape]:
         for poly in geom.geoms if hasattr(geom, "geoms") else [geom]:
-            if type(poly) != Polygon:
+            if type(poly) is not Polygon:
                 continue
             # Get polygon's exterior and interiors
             exterior = np.array(poly.exterior.xy)
@@ -129,20 +129,6 @@ def plot_gdf(
 ) -> None:
     """
     Plot a layer
-
-    Args:
-        layer (str): layer name
-        gdf (gp.GeoDataFrame): GeoDataFrame
-        ax (matplotlib.axes.Axes): matplotlib axis object
-        mode (str): drawing mode. Options: 'matplotlib'. Defaults to 'matplotlib'
-        palette (Optional[List[str]], optional): Color palette. Defaults to None.
-        width (Optional[Union[dict, float]], optional): Street widths. Either a dictionary or a float. Defaults to None.
-        union (bool, optional): Whether to join geometries. Defaults to False.
-        dilate_points (Optional[float], optional): Amount of dilation to be applied to point (1D) geometries. Defaults to None.
-        dilate_lines (Optional[float], optional): Amount of dilation to be applied to line (2D) geometries. Defaults to None.
-
-    Raises:
-        Exception: _description_
     """
 
     # Get hatch and hatch_c parameter
@@ -192,7 +178,7 @@ def plot_gdf(
                     **{k: v for k, v in kwargs.items() if k not in ["hatch", "fill"]},
                 ),
             )
-        elif type(shape) == LineString:
+        elif type(shape) is LineString:
             ax.plot(
                 *shape.xy,
                 c=kwargs["ec"] if "ec" in kwargs else None,
@@ -202,7 +188,7 @@ def plot_gdf(
                     if k in ["lw", "ls", "dashes", "zorder"]
                 },
             )
-        elif type(shape) == MultiLineString:
+        elif type(shape) is MultiLineString:
             for c in shape.geoms:
                 ax.plot(
                     *c.xy,
@@ -215,36 +201,24 @@ def plot_gdf(
                 )
 
 
-
-##########
-
-
-def plot_legends(gdf, ax):
-
+def plot_legends(gdf: gp.GeoDataFrame, ax: matplotlib.axes.Axes) -> None:
     for _, row in gdf.iterrows():
         name = row.name
         x, y = np.concatenate(row.geometry.centroid.xy)
         ax.text(x, y, name)
 
 
-##########
-
-
-def graph_to_shapely(gdf: gp.GeoDataFrame, width: float = 1.0) -> BaseGeometry:
+def graph_to_shapely(
+    gdf: gp.GeoDataFrame,
+    width: dict[str, float] | float = 1.0,
+) -> BaseGeometry:
     """
     Given a GeoDataFrame containing a graph (street newtork),
     convert them to shapely geometries by applying dilation given by 'width'
-
-    Args:
-        gdf (gp.GeoDataFrame): input GeoDataFrame containing graph (street network) geometries
-        width (float, optional): Line geometries will be dilated by this amount. Defaults to 1..
-
-    Returns:
-        BaseGeometry: Shapely
     """
 
     def highway_to_width(highway):
-        if (type(highway) == str) and (highway in width):
+        if (type(highway) is str) and (highway in width):
             return width[highway]
         if isinstance(highway, Iterable):
             for h in highway:
@@ -254,7 +228,7 @@ def graph_to_shapely(gdf: gp.GeoDataFrame, width: float = 1.0) -> BaseGeometry:
         return np.nan
 
     # Annotate GeoDataFrame with the width for each highway type
-    gdf["width"] = gdf.highway.map(highway_to_width) if type(width) == dict else width
+    gdf["width"] = gdf.highway.map(highway_to_width) if type(width) is dict else width
 
     # Remove rows with inexistent width
     gdf.drop(gdf[gdf.width.isna()].index, inplace=True)
@@ -279,20 +253,12 @@ def geometries_to_shapely(
 ) -> GeometryCollection:
     """
     Convert geometries in GeoDataFrame to shapely format
-
-    Args:
-        gdf (gp.GeoDataFrame): Input GeoDataFrame
-        point_size (Optional[float], optional): Point geometries (1D) will be dilated by this amount. Defaults to None.
-        line_width (Optional[float], optional): Line geometries (2D) will be dilated by this amount. Defaults to None.
-
-    Returns:
-        GeometryCollection: Shapely geometries computed from GeoDataFrame geometries
     """
 
     geoms = gdf.geometry.tolist()
-    collections = [x for x in geoms if type(x) == GeometryCollection]
-    points = [x for x in geoms if type(x) == Point] + [
-        y for x in collections for y in x.geoms if type(y) == Point
+    collections = [x for x in geoms if type(x) is GeometryCollection]
+    points = [x for x in geoms if type(x) is Point] + [
+        y for x in collections for y in x.geoms if type(y) is Point
     ]
     lines = [x for x in geoms if type(x) in [LineString, MultiLineString]] + [
         y
@@ -316,23 +282,13 @@ def geometries_to_shapely(
 def gdf_to_shapely(
     layer: str,
     gdf: gp.GeoDataFrame,
-    width: Optional[dict | float] = None,
+    width: Optional[dict[str, float] | float] = None,
     point_size: Optional[float] = None,
     line_width: Optional[float] = None,
     **kwargs,
 ) -> GeometryCollection:
     """
     Convert a dict of GeoDataFrames to a dict of shapely geometries
-
-    Args:
-        layer (str): Layer name
-        gdf (gp.GeoDataFrame): Input GeoDataFrame
-        width (Optional[Union[dict, float]], optional): Street network width. Can be either a dictionary or a float. Defaults to None.
-        point_size (Optional[float], optional): Point geometries (1D) will be dilated by this amount. Defaults to None.
-        line_width (Optional[float], optional): Line geometries (2D) will be dilated by this amount. Defaults to None.
-
-    Returns:
-        GeometryCollection: Output GeoDataFrame
     """
 
     # Project gdf
@@ -407,67 +363,24 @@ def create_background(
 # Plot
 def plot(
     query: str | tuple[float, float] | gp.GeoDataFrame,
-    layers={},
-    style={},
-    postprocessing=None,
-    circle=None,
-    radius=None,
-    dilate=None,
-    save_as=None,
-    fig=None,
-    ax=None,
-    figsize=(12, 12),
-    show=True,
-    x=0,
-    y=0,
-    scale_x=1,
-    scale_y=1,
-    rotation=0,
-):
-    """
-
-    Draw a map from OpenStreetMap data.
-
-    Parameters
-    ----------
-    query : string
-        The address to geocode and use as the central point around which to get the geometries
-    postprocessing: function
-        (Optional) Apply a postprocessing step to the 'layers' dict
-    radius
-        (Optional) If not None, draw the map centered around the address with this radius (in meters)
-    layers: dict
-        Specify the name of each layer and the OpenStreetMap tags to fetch
-    style: dict
-        Drawing params for each layer (matplotlib params such as 'fc', 'ec', 'fill', etc.)
-    osm_credit: dict
-        OSM Caption parameters
-    figsize: Tuple
-        (Optional) Width and Height (in inches) for the Matplotlib figure. Defaults to (10, 10)
-    ax: axes
-        Matplotlib axes
-    title: String
-        (Optional) Title for the Matplotlib figure
-    x: float
-        (Optional) Horizontal displacement
-    y: float
-        (Optional) Vertical displacement
-    scale_x: float
-        (Optional) Horizontal scale factor
-    scale_y: float
-        (Optional) Vertical scale factor
-    rotation: float
-        (Optional) Rotation in angles (0-360)
-
-    Returns
-    -------
-    layers: dict
-        Dictionary of layers (each layer is a Shapely MultiPolygon)
-
-    Notes
-    -----
-
-    """
+    layers: dict[str, dict[str, Any]],
+    style: dict[str, dict[str, Any]],
+    radius: float,
+    postprocessing: Optional[Callable[..., None]] = None,
+    fig: Optional[matplotlib.figure.Figure] = None,
+    ax: Optional[matplotlib.axes.Axes] = None,
+    figsize: tuple[float, float] = (12, 12),
+    show: bool = True,  # noqa: FBT002, FBT001
+    x: float = 0,
+    y: float = 0,
+    scale_x: float = 1,
+    scale_y: float = 1,
+    rotation: float = 0,
+    circle: bool = False,  # noqa: FBT001, FBT002
+    dilate: bool = False,  # noqa: FBT001, FBT002
+    save_as: bool = False,  # noqa: FBT002, FBT001
+) -> Plot:
+    """Draw a map from OpenStreetMap data."""
 
     # 2. Init matplotlib figure and ax
     if fig is None:

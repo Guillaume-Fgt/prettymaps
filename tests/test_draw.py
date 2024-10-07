@@ -21,7 +21,7 @@ def test_override_args_circle_true_dilate_true_present_previously() -> None:
     }
 
 
-def test_override_args_circle_true_dilate_true_present_previously_unchanged() -> None:
+def test_override_args_circle_false_dilate_false_present_previously_unchanged() -> None:
     layers = {
         "perimeter": {"width": 12, "circle": False, "dilate": False},
     }

@@ -114,6 +114,7 @@ def get_gdf(
     tags=None,
     osmid=None,
     custom_filter=None,
+    **kwargs,  # weird mechanism to give values to tags or custom_filter arguments depending on layers
 ):
 
     # Apply tolerance to the perimeter
