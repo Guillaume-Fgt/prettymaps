@@ -26,8 +26,7 @@ def calculate_gdf_area(gdf: GeoDataFrame) -> float:
 
 
 def define_area_by_osmid(osmid: str) -> GeoDataFrame:
-    """
-    Define the area where OSM features will be fetched using an OSM ID
+    """Define the area where OSM features will be fetched using an OSM ID
 
     An OSM ID can be of three types: node(N), way(W) or relation(R).
     examples: Manhattan R8398124, Brooklyn Bridge W375157262, US Post Office N4886770821
@@ -43,8 +42,8 @@ def define_area_by_osmid(osmid: str) -> GeoDataFrame:
     return area
 
 
-def retrieve_features_from_area(area: GeoDataFrame, features: OsmTags):
-    """fetch the features for a given area"""
+def retrieve_features_from_area(area: GeoDataFrame):
+    """Fetch the features for a given area"""
     tags = retrieve_tags(100)
     OsmTags = StrEnum("OsmTags", tags)
 

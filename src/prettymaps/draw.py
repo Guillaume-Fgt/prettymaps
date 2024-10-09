@@ -42,8 +42,7 @@ def transform_gdfs(
     scale_y: float = 1,
     rotation: float = 0,
 ) -> dict[str, gp.GeoDataFrame]:
-    """
-    Apply geometric transformations to dictionary of GeoDataFrames
+    """Apply geometric transformations to dictionary of GeoDataFrames
 
     Args:
         gdfs (Dict[str, gp.GeoDataFrame]): Dictionary of GeoDataFrames
@@ -55,6 +54,7 @@ def transform_gdfs(
 
     Returns:
         Dict[str, gp.GeoDataFrame]: dictionary of transformed GeoDataFrames
+
     """
     # Project geometries
     gdfs = {
@@ -88,6 +88,7 @@ def PolygonPatch(shape: BaseGeometry, **kwargs) -> PathPatch:
 
     Returns:
         PathPatch: matplotlib PatchPatch created from input shapely geometry
+
     """
     # Init vertices and codes lists
     vertices, codes = [], []
@@ -127,10 +128,7 @@ def plot_gdf(
     dilate_lines: Optional[float] = None,
     **kwargs,
 ) -> None:
-    """
-    Plot a layer
-    """
-
+    """Plot a layer"""
     # Get hatch and hatch_c parameter
     hatch_c = kwargs.pop("hatch_c") if "hatch_c" in kwargs else None
 
@@ -213,8 +211,7 @@ def graph_to_shapely(
     gdf: gp.GeoDataFrame,
     width: dict[str, float] | float = 1.0,
 ) -> BaseGeometry:
-    """
-    Given a GeoDataFrame containing a graph (street newtork),
+    """Given a GeoDataFrame containing a graph (street newtork),
     convert them to shapely geometries by applying dilation given by 'width'
     """
 
@@ -252,10 +249,7 @@ def geometries_to_shapely(
     point_size: Optional[float] = None,
     line_width: Optional[float] = None,
 ) -> GeometryCollection:
-    """
-    Convert geometries in GeoDataFrame to shapely format
-    """
-
+    """Convert geometries in GeoDataFrame to shapely format"""
     geoms = gdf.geometry.tolist()
     collections = [x for x in geoms if type(x) is GeometryCollection]
     points = [x for x in geoms if type(x) is Point] + [
@@ -288,10 +282,7 @@ def gdf_to_shapely(
     line_width: Optional[float] = None,
     **kwargs,
 ) -> GeometryCollection:
-    """
-    Convert a dict of GeoDataFrames to a dict of shapely geometries
-    """
-
+    """Convert a dict of GeoDataFrames to a dict of shapely geometries"""
     # Project gdf
     try:
         gdf = ox.projection.project_gdf(gdf)
@@ -328,8 +319,7 @@ def create_background(
     gdfs: dict[str, gp.GeoDataFrame],
     style: dict[str, dict],
 ) -> BaseGeometry:
-    """
-    Create a background layer given a collection of GeoDataFrames
+    """Create a background layer given a collection of GeoDataFrames
 
     Args:
         gdfs (Dict[str, gp.GeoDataFrame]): Dictionary of GeoDataFrames
@@ -337,8 +327,8 @@ def create_background(
 
     Returns:
         Tuple[BaseGeometry]: background geometry, bounds, width and height
-    """
 
+    """
     # Create background
     background_pad = 1.1
     if "background" in style and "pad" in style["background"]:
@@ -381,7 +371,6 @@ def plot(
     save_as: bool = False,  # noqa: FBT002, FBT001
 ) -> Plot:
     """Draw a map from OpenStreetMap data."""
-
     # 2. Init matplotlib figure and ax
     if fig is None:
         fig = plt.figure(figsize=figsize, dpi=300)
