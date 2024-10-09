@@ -2,9 +2,11 @@
 
 import re
 from copy import deepcopy
+from enum import StrEnum
 
 import numpy as np
 import osmnx as ox
+from attr import dataclass
 from geopandas import GeoDataFrame
 from shapely.affinity import rotate, scale
 from shapely.geometry import (
@@ -13,6 +15,38 @@ from shapely.geometry import (
     box,
 )
 from shapely.ops import unary_union
+
+from .tag_info_api import retrieve_tags
+
+
+def calculate_gdf_area(gdf: GeoDataFrame) -> float:
+    """Calculate the area of a GeoDataFrame"""
+    projected_gdf = ox.projection.project_gdf(gdf)
+    return projected_gdf.geometry.area.sum()
+
+
+def define_area_by_osmid(osmid: str) -> GeoDataFrame:
+    """
+    Define the area where OSM features will be fetched using an OSM ID
+
+    An OSM ID can be of three types: node(N), way(W) or relation(R).
+    examples: Manhattan R8398124, Brooklyn Bridge W375157262, US Post Office N4886770821
+
+    For the area to be valid, it should not be null. So don't use node(N) .
+    """
+    area = ox.geocoder.geocode_to_gdf(osmid, by_osmid=True)
+    if calculate_gdf_area(area) == 0:
+        msg = "The area of this OSM ID is null. Check you didn't enter a node OSM ID(Nxxxxxx)"
+        raise ValueError(
+            msg,
+        )
+    return area
+
+
+def retrieve_features_from_area(area: GeoDataFrame, features: OsmTags):
+    """fetch the features for a given area"""
+    tags = retrieve_tags(100)
+    OsmTags = StrEnum("OsmTags", tags)
 
 
 # Parse query (by coordinates, OSMId or name)
@@ -138,7 +172,7 @@ def get_gdf(
             # Fetch geometries from OSM
             gdf = ox.features.features_from_polygon(
                 bbox,
-                tags={tags: True} if type(tags) == str else tags,
+                tags={tags: True} if type(tags) is str else tags,
             )
         else:
             gdf = ox.geocoder.geocode_to_gdf(osmid, by_osmid=True)

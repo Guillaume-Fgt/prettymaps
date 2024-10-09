@@ -1,7 +1,4 @@
-import osmnx
-from shapely.geometry import Point
+from prettymaps.fetch import define_area_by_osmid
 
-
-def construct_prettymap(plane_name: str) -> None:
-    x, y = osmnx.geocoder.geocode(plane_name)
-    center_point = Point(x, y)
+area = define_area_by_osmid("W52278395")
+area.plot()

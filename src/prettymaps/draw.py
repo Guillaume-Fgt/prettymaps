@@ -147,6 +147,7 @@ def plot_gdf(
     if union:
         geometries = shapely.ops.unary_union(GeometryCollection([geometries]))
 
+    # if user forgot to change fc to palette when providing list colors?
     if (palette is None) and ("fc" in kwargs) and (type(kwargs["fc"]) is not str):
         palette = kwargs.pop("fc")
 
