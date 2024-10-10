@@ -18,12 +18,10 @@ def retrieve_tags(min_count: int = 1_000_000) -> list[str]:
     return [tag["key"] for tag in r.json()["data"] if tag["count_all"] >= min_count]
 
 
-def get_prevalent_values(session: requests.Session, tag: str) -> list[str]:
+def get_prevalent_values(tag: str) -> list[str]:
     """Get most prevalent values used by a given tag."""
     url = f"https://taginfo.openstreetmap.org/api/4/key/prevalent_values?key={tag}"
-    r = session.get(url, timeout=10)
+    r = requests.get(url, timeout=10)
     print(r.json())
     return [value["value"] for value in r.json()["data"]]
 
-
-print(retrieve_tags())
