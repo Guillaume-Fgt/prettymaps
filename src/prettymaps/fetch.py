@@ -16,17 +16,17 @@ from shapely.geometry import (
 )
 from shapely.ops import unary_union
 
-from .tag_info_api import retrieve_tags
+from .taginfo_api import retrieve_tags
 
 
 def calculate_gdf_area(gdf: GeoDataFrame) -> float:
-    """Calculate the area of a GeoDataFrame"""
+    """Calculate the area of a GeoDataFrame."""
     projected_gdf = ox.projection.project_gdf(gdf)
     return projected_gdf.geometry.area.sum()
 
 
 def define_area_by_osmid(osmid: str) -> GeoDataFrame:
-    """Define the area where OSM features will be fetched using an OSM ID
+    """Define the area where OSM features will be fetched using an OSM ID.
 
     An OSM ID can be of three types: node(N), way(W) or relation(R).
     examples: Manhattan R8398124, Brooklyn Bridge W375157262, US Post Office N4886770821
@@ -42,11 +42,12 @@ def define_area_by_osmid(osmid: str) -> GeoDataFrame:
     return area
 
 
-def retrieve_features_from_area(area: GeoDataFrame):
-    """Fetch the features for a given area"""
-    tags = retrieve_tags(100)
-    OsmTags = StrEnum("OsmTags", tags)
-
+def retrieve_features_from_area(
+    area: GeoDataFrame,
+    tags: dict[str, bool | str | list[str]],
+) -> GeoDataFrame:
+    """Fetch the features of tags for a given area."""
+    return ox.features.features_from_polygon(*area.geometry, tags=tags)
 
 # Parse query (by coordinates, OSMId or name)
 def parse_query(query):
