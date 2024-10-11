@@ -22,6 +22,5 @@ def get_prevalent_values(tag: str) -> list[str]:
     """Get most prevalent values used by a given tag."""
     url = f"https://taginfo.openstreetmap.org/api/4/key/prevalent_values?key={tag}"
     r = requests.get(url, timeout=10)
-    print(r.json())
-    return [value["value"] for value in r.json()["data"]]
+    return [value["value"] for value in r.json()["data"] if value["value"] is not None]
 

@@ -12,6 +12,7 @@ dependencies = [
   "osmnx==2.0.0b3",
   "shapely==2.0.6",
   "matplotlib==3.9.2",
+  "contextily==1.6.2",
 ]
 
 [project.optional-dependencies]
